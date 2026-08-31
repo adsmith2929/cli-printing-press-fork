@@ -453,6 +453,44 @@ func newGetCmd() *cobra.Command {
             self.assertEqual(["--filter"], flags)
 
 
+    def test_nonvar_boolean_long_flag_does_not_swallow_following_positional(self):
+        """Plain Cobra Bool/BoolP declarations are also value-less flags."""
+        with tempfile.TemporaryDirectory() as td:
+            cli_dir = _write_cli(Path(td), {
+                "root.go": """package cli
+import "github.com/spf13/cobra"
+func Execute() error {
+    rootCmd := &cobra.Command{Use: "fixture-pp-cli"}
+    rootCmd.AddCommand(newGetCmd())
+    return rootCmd.Execute()
+}
+""",
+                "get.go": """package cli
+import "github.com/spf13/cobra"
+func newGetCmd() *cobra.Command {
+    cmd := &cobra.Command{Use: "get <id>"}
+    cmd.Flags().Bool("json", false, "output as JSON")
+    cmd.Flags().BoolP("verbose", "v", false, "verbose output")
+    return cmd
+}
+""",
+            })
+
+            cmd_path, positional, flags = _cli_invocation_from_tokens(
+                ["get", "--json", "item-123"], cli_dir,
+            )
+            self.assertEqual(["get"], cmd_path)
+            self.assertEqual(["item-123"], positional)
+            self.assertEqual(["--json"], flags)
+
+            cmd_path, positional, flags = _cli_invocation_from_tokens(
+                ["get", "--verbose", "item-123"], cli_dir,
+            )
+            self.assertEqual(["get"], cmd_path)
+            self.assertEqual(["item-123"], positional)
+            self.assertEqual(["--verbose"], flags)
+
+
     def test_nested_boolean_long_flag_does_not_swallow_following_positional(self):
         """Boolean flag discovery must use the resolved nested CLI source tree."""
         with tempfile.TemporaryDirectory() as td:
