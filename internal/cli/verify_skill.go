@@ -38,6 +38,29 @@ type verifySkillRunResult struct {
 	ExitCode int
 }
 
+func verifySkillSourceDir(dir string) string {
+	direct := filepath.Join(dir, "internal", "cli")
+	if info, err := os.Stat(direct); err == nil && info.IsDir() {
+		return direct
+	}
+
+	matches, err := filepath.Glob(filepath.Join(dir, "*", "internal", "cli"))
+	if err != nil {
+		return ""
+	}
+
+	var nested []string
+	for _, path := range matches {
+		if info, err := os.Stat(path); err == nil && info.IsDir() {
+			nested = append(nested, path)
+		}
+	}
+	if len(nested) == 1 {
+		return nested[0]
+	}
+	return ""
+}
+
 func runVerifySkillScript(dir string, only []string, asJSON bool, strict bool) (verifySkillRunResult, error) {
 	result := verifySkillRunResult{}
 
@@ -49,7 +72,7 @@ func runVerifySkillScript(dir string, only []string, asJSON bool, strict bool) (
 		result.ExitCode = ExitInputError
 		return result, &ExitError{Code: ExitInputError, Err: fmt.Errorf("no SKILL.md in %s", abs)}
 	}
-	if _, err := os.Stat(filepath.Join(abs, "internal", "cli")); err != nil {
+	if verifySkillSourceDir(abs) == "" {
 		result.ExitCode = ExitInputError
 		return result, &ExitError{Code: ExitInputError, Err: fmt.Errorf("no internal/cli/ in %s", abs)}
 	}

@@ -3,13 +3,28 @@
 package cli
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // TestPythonUTF8Env_AppendsEncodingVarsWhenAbsent guards the Windows cp1252
 // crash fix: the verify-skill Python subprocess must receive UTF-8 stdio
 // env vars so its ✓/✘ glyph prints don't raise UnicodeEncodeError on Windows.
+
+func TestVerifySkillSourceDir_NestedLayout(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	nested := filepath.Join(dir, "module", "internal", "cli")
+	require.NoError(t, os.MkdirAll(nested, 0o755))
+
+	require.Equal(t, nested, verifySkillSourceDir(dir))
+}
+
 func TestPythonUTF8Env_AppendsEncodingVarsWhenAbsent(t *testing.T) {
 	t.Parallel()
 
